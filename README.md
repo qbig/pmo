@@ -8,7 +8,8 @@ An AI-supercharged PMO assistant that treats Markdown files as the canonical sou
 
 - Python 3.9+
 - Node.js 18+ (for frontend)
-- Ollama (for local LLM) - [Install Ollama](https://ollama.ai)
+- Google AI Studio API key (for Gemini)
+- Ollama (optional, for local LLM) - [Install Ollama](https://ollama.ai)
 
 ### Setup
 
@@ -60,13 +61,23 @@ Open http://localhost:5173 in your browser.
 Set environment variables for LLM configuration:
 
 ```bash
-export PMO_LLM_PROVIDER=ollama  # or "openai"
-export PMO_LLM_MODEL=llama2     # or your preferred model
-export PMO_LLM_BASE_URL=http://localhost:11434  # Ollama default
+export PMO_LLM_PROVIDER=gemini  # or "ollama" / "openai"
+export PMO_LLM_MODEL=gemini-2.0-flash  # or your preferred model
+export PMO_LLM_API_KEY=your_api_key   # required for Gemini
+export PMO_LLM_BASE_URL=https://generativelanguage.googleapis.com  # Gemini default
 export PMO_PORT=8000            # Backend port
 ```
 
-### Using Ollama
+### Using Gemini (default)
+
+1. Create a Gemini API key in Google AI Studio
+2. Set the provider and key:
+   `export PMO_LLM_PROVIDER=gemini`
+   `export PMO_LLM_API_KEY=your_api_key`
+3. Optional: choose a model (example: `gemini-2.0-flash`)
+4. Start the backend
+
+### Using Ollama (optional)
 
 1. Install Ollama: https://ollama.ai
 2. Pull a model: `ollama pull llama2`
@@ -120,7 +131,7 @@ See `specs/file-schemas.md` for file format documentation.
 - **Backend**: Python daemon (FastAPI, file watching, SQLite indexing, AI execution)
 - **Frontend**: React + Vite web UI with Tailwind CSS
 - **Storage**: Markdown files + SQLite index (`.pmo.db` in workspace)
-- **AI**: Local LLM (Ollama/LM Studio) with optional OpenAI-compatible API fallback
+- **AI**: Gemini (default) or local LLM (Ollama/LM Studio) with optional OpenAI-compatible API fallback
 - **Search**: Semantic embeddings using sentence-transformers (optional)
 
 ## API Endpoints
@@ -154,8 +165,8 @@ See `ralph/PRD.md` for full requirements and `ralph/PROGRESS.md` for current sta
 - Check port 5173 is available
 
 **AI features not working:**
-- Ensure Ollama is running: `ollama serve`
-- Check model is available: `ollama list`
+- For Gemini: verify `PMO_LLM_API_KEY` is set and the model name is valid
+- For Ollama: ensure Ollama is running (`ollama serve`) and the model is available (`ollama list`)
 - Verify environment variables are set correctly
 
 **Semantic search not available:**
