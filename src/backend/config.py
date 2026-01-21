@@ -30,9 +30,17 @@ class Config:
         self.database_path = self.workspace_root / ".pmo.db"
         
         # LLM configuration
-        self.llm_provider = os.getenv("PMO_LLM_PROVIDER", "ollama")
-        self.llm_model = os.getenv("PMO_LLM_MODEL", "llama2")
-        self.llm_base_url = os.getenv("PMO_LLM_BASE_URL", "http://localhost:11434")
+        provider = os.getenv("PMO_LLM_PROVIDER", "gemini").strip().lower()
+        self.llm_provider = provider
+        default_model = "gemini-2.0-flash" if provider == "gemini" else "llama2"
+        self.llm_model = os.getenv("PMO_LLM_MODEL", default_model)
+        default_base_url = (
+            "https://generativelanguage.googleapis.com"
+            if provider == "gemini"
+            else "http://localhost:11434"
+        )
+        self.llm_base_url = os.getenv("PMO_LLM_BASE_URL", default_base_url)
+        self.llm_api_key = os.getenv("PMO_LLM_API_KEY")
         
         # Embedding model
         self.embedding_model = os.getenv("PMO_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
