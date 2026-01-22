@@ -99,6 +99,8 @@ trap cleanup SIGINT SIGTERM
 echo -e "${YELLOW}🔧 Starting backend server...${NC}"
 
 # Start backend
+export PMO_HOST="${PMO_HOST:-0.0.0.0}"
+export PMO_PORT="${PMO_PORT:-8000}"
 export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
 python3 -m src.backend.main &
 BACKEND_PID=$!
@@ -106,7 +108,7 @@ BACKEND_PID=$!
 # Wait for backend to be ready
 echo "Waiting for backend to start..."
 for i in {1..30}; do
-    if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+    if curl -s "http://127.0.0.1:${PMO_PORT}/health" > /dev/null 2>&1; then
         echo -e "${GREEN}✅ Backend is ready${NC}"
         break
     fi
@@ -121,23 +123,42 @@ done
 echo -e "${YELLOW}🔧 Starting frontend server...${NC}"
 
 # Start frontend
+FRONTEND_HOST="${PMO_FRONTEND_HOST:-0.0.0.0}"
+FRONTEND_PORT="${PMO_FRONTEND_PORT:-5173}"
+FRONTEND_LOG="$SCRIPT_DIR/.frontend.log"
 cd src/frontend
-npm run dev > /dev/null 2>&1 &
+npm run dev -- --host "$FRONTEND_HOST" --port "$FRONTEND_PORT" --strictPort > "$FRONTEND_LOG" 2>&1 &
 FRONTEND_PID=$!
 cd "$SCRIPT_DIR"
 
 # Wait for frontend to be ready
 echo "Waiting for frontend to start..."
-sleep 3
+for i in {1..30}; do
+    if curl -s "http://127.0.0.1:${FRONTEND_PORT}/" > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Frontend is ready${NC}"
+        break
+    fi
+    if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+        echo -e "${RED}❌ Frontend failed to start${NC}"
+        echo -e "${YELLOW}   See ${FRONTEND_LOG} for details${NC}"
+        exit 1
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}❌ Frontend failed to start in time${NC}"
+        echo -e "${YELLOW}   See ${FRONTEND_LOG} for details${NC}"
+        exit 1
+    fi
+    sleep 1
+done
 
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}✅ PMO Assistant is running!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "🌐 Frontend: ${GREEN}http://localhost:5173${NC}"
-echo -e "🔧 Backend API: ${GREEN}http://localhost:8000${NC}"
-echo -e "📊 Health Check: ${GREEN}http://localhost:8000/health${NC}"
+echo -e "🌐 Frontend: ${GREEN}http://localhost:${FRONTEND_PORT}${NC}"
+echo -e "🔧 Backend API: ${GREEN}http://localhost:${PMO_PORT}${NC}"
+echo -e "📊 Health Check: ${GREEN}http://localhost:${PMO_PORT}/health${NC}"
 echo ""
 if [ "$LLM_PROVIDER" = "gemini" ] && [ -z "$PMO_LLM_API_KEY" ]; then
     echo -e "${YELLOW}⚠️  Note: AI features require PMO_LLM_API_KEY to be set${NC}"
